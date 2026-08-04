@@ -20,8 +20,10 @@ app.post('/api/run', (req, res) => {
         return res.status(400).json({ error: 'Error: program too large (maximum 10000 characters)' });
     }
 
-    const fileName = `code_${Date.now()}_${Math.random().toString(36).substring(7)}.elpl`;
+  // Use a clean, consistent filename instead of a random string
+    const fileName = 'Main.elpl';
     const filePath = path.join('/tmp', fileName);
+    fs.writeFileSync(filePath, userCode);
 
     try {
         fs.writeFileSync(filePath, code, 'utf8');
