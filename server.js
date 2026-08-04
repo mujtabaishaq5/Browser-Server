@@ -32,33 +32,29 @@ app.post('/api/run', (req, res) => {
 
     const command = `stdbuf -oL "${BIN_PATH}" "${filePath}"`;
 
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
-        try {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        } catch (e) {}
+    // Inside your server.js route handler where you run the binary:
+exec(`stdbuf -oL /usr/src/app/bin/elpl "${filePath}"`, (error, stdout, stderr) => {
+    
+    // Combine stdout and stderr so nothing gets lost
+    let outputData = stdout.trim();
+    if (stderr && stderr.trim() !== '') {
+        outputData += (outputData ? '\n' : '') + stderr.trim();
+    }
+    
+    // If outputData is still completely empty, fallback cleanly
+    if (!outputData) {
+        outputData = "Program executed successfully (No print output)";
+    }
 
-        console.log(`[SERVER] Exit Code:`, error ? error.code : 0);
-        console.log(`[SERVER] Error Object:`, error);
-        console.log(`[SERVER] Stdout:`, JSON.stringify(stdout));
-        console.log(`[SERVER] Stderr:`, JSON.stringify(stderr));
-
-       let finalOutput = stdout.trim();
-        if (stderr && stderr.trim() !== '') {
-            finalOutput += (finalOutput ? '\n' : '') + stderr.trim();
-        }
-        
-        // Fallback: if stdout was empty but the binary ran, show a success message instead of blank text
-        if (!finalOutput) {
-            finalOutput = "Program executed successfully.";
-        }
-
-        res.json({
-            exitCode: error ? (error.code || 1) : 0,
-            stdout: stdout.trim(),
-            stderr: stderr.trim(),
-            output: finalOutput
-        });
+    res.json({
+        exitCode: error ? (error.code || 1) : 0,
+        stdout: stdout,
+        stderr: stderr,
+        output: outputData  // <-- Make sure your frontend reads this 'output' field!
     });
+});
+
+      
 });
 
 const PORT = process.env.PORT || 3000;
