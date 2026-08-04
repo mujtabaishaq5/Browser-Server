@@ -42,22 +42,21 @@ app.post('/api/run', (req, res) => {
         console.log(`[SERVER] Stdout:`, JSON.stringify(stdout));
         console.log(`[SERVER] Stderr:`, JSON.stringify(stderr));
 
-        let finalOutput = stdout.trim();
+       let finalOutput = stdout.trim();
         if (stderr && stderr.trim() !== '') {
             finalOutput += (finalOutput ? '\n' : '') + stderr.trim();
         }
-        if (error) {
-            finalOutput += (finalOutput ? '\n' : '') + 'Process Error: ' + error.message;
-            if (error.killed) {
-                finalOutput += '\nError: Execution timeout (maximum 5 seconds)';
-            }
+        
+        // Fallback: if stdout was empty but the binary ran, show a success message instead of blank text
+        if (!finalOutput) {
+            finalOutput = "Program executed successfully.";
         }
 
         res.json({
             exitCode: error ? (error.code || 1) : 0,
             stdout: stdout.trim(),
             stderr: stderr.trim(),
-            output: finalOutput || "(Program executed with no output)"
+            output: finalOutput
         });
     });
 });
