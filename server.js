@@ -30,26 +30,26 @@ app.post('/api/run', (req, res) => {
         return res.status(500).json({ error: 'Failed to write temporary source file.' });
     }
 
-    // Pass the temp file path to your binary CLI argument structure
     const command = `stdbuf -oL "${BIN_PATH}" "${filePath}"`;
 
-    exec(command, { timeout: 3000 }, (error, stdout, stderr) => {
+    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
         try {
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         } catch (e) {}
 
+        console.log(`[SERVER] Exit Code:`, error ? error.code : 0);
+        console.log(`[SERVER] Error Object:`, error);
         console.log(`[SERVER] Stdout:`, JSON.stringify(stdout));
         console.log(`[SERVER] Stderr:`, JSON.stringify(stderr));
 
-        // Combine stdout and any potential runtime errors printed to stderr
         let finalOutput = stdout.trim();
         if (stderr && stderr.trim() !== '') {
             finalOutput += (finalOutput ? '\n' : '') + stderr.trim();
         }
-        if (error && error.message && !finalOutput.includes(error.message)) {
-            // Include execution exit/timeout details if relevant
+        if (error) {
+            finalOutput += (finalOutput ? '\n' : '') + 'Process Error: ' + error.message;
             if (error.killed) {
-                finalOutput += (finalOutput ? '\n' : '') + 'Error: Execution timeout (maximum 3 seconds)';
+                finalOutput += '\nError: Execution timeout (maximum 5 seconds)';
             }
         }
 
@@ -57,7 +57,7 @@ app.post('/api/run', (req, res) => {
             exitCode: error ? (error.code || 1) : 0,
             stdout: stdout.trim(),
             stderr: stderr.trim(),
-            output: finalOutput
+            output: finalOutput || "(Program executed with no output)"
         });
     });
 });
