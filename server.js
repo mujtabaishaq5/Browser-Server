@@ -20,10 +20,9 @@ app.post('/api/run', (req, res) => {
         return res.status(400).json({ error: 'Error: program too large (maximum 10000 characters)' });
     }
 
-  // Use a clean, consistent filename instead of a random string
+    // Use a clean, consistent filename
     const fileName = 'Main.elpl';
     const filePath = path.join('/tmp', fileName);
-    fs.writeFileSync(filePath, userCode);
 
     try {
         fs.writeFileSync(filePath, code, 'utf8');
@@ -32,31 +31,24 @@ app.post('/api/run', (req, res) => {
         return res.status(500).json({ error: 'Failed to write temporary source file.' });
     }
 
-    const command = `stdbuf -oL "${BIN_PATH}" "${filePath}"`;
+    // Execute your binary pointing to Main.elpl
+    exec(`stdbuf -oL "${BIN_PATH}" "${filePath}"`, (error, stdout, stderr) => {
+        let outputData = stdout.trim();
+        if (stderr && stderr.trim() !== '') {
+            outputData += (outputData ? '\n' : '') + stderr.trim();
+        }
+        
+        if (!outputData) {
+            outputData = "Program executed successfully (No print output)";
+        }
 
-    // Inside your server.js route handler where you run the binary:
-exec(`stdbuf -oL /usr/src/app/bin/elpl "${filePath}"`, (error, stdout, stderr) => {
-    
-    // Combine stdout and stderr so nothing gets lost
-    let outputData = stdout.trim();
-    if (stderr && stderr.trim() !== '') {
-        outputData += (outputData ? '\n' : '') + stderr.trim();
-    }
-    
-    // If outputData is still completely empty, fallback cleanly
-    if (!outputData) {
-        outputData = "Program executed successfully (No print output)";
-    }
-
-    res.json({
-        exitCode: error ? (error.code || 1) : 0,
-        stdout: stdout,
-        stderr: stderr,
-        output: outputData  // <-- Make sure your frontend reads this 'output' field!
+        res.json({
+            exitCode: error ? (error.code || 1) : 0,
+            stdout: stdout,
+            stderr: stderr,
+            output: outputData
+        });
     });
-});
-
-      
 });
 
 const PORT = process.env.PORT || 3000;
