@@ -1,13 +1,13 @@
-FROM ubuntu:22.04
+# Use Eclipse Temurin (Official OpenJDK) with Java 17 pre-installed
+FROM eclipse-temurin:17-jdk-jammy
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Node.js, npm, Java JDK, and core utilities
-RUN apt-get update && apt-get install -y \
+# Install Node.js, npm, and dos2unix efficiently
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
-    default-jdk \
     dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +22,7 @@ RUN npm install --production
 COPY server.js ./
 COPY bin/ ./bin/
 
-# Force convert line endings just in case and grant execution permissions
+# Force convert line endings and grant execution permissions
 RUN dos2unix ./bin/elpl && chmod +x ./bin/elpl
 
 EXPOSE 3000
